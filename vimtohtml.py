@@ -14,14 +14,14 @@ from jinja2 import Environment, FileSystemLoader
 from bs4 import BeautifulSoup
 from time import sleep
 import logging
-from collections import OrderedDict
 
 
 class Listener:
     vimfile = Path("/tmp/blockcontent.txt").absolute()
     outfile = Path("/tmp/outputcontent.txt").absolute()
     env = Environment(loader=FileSystemLoader('templates'))
-    template_html = env.get_template('block_content.html')
+    plot_template = env.get_template('block_content.html')
+    no_plot_template = env.get_template('block_content_no_plot.html')
 
     def __init__(self, filepath):
         self.filepath = Path(filepath).expanduser().absolute()
@@ -39,7 +39,7 @@ class Listener:
 
     def parse_tags(self):
         bs = BeautifulSoup(self.read_html(), features="html.parser")
-        html_tags = OrderedDict({int(x['id']): str(x.parent) for x in bs.find_all("h2")})
+        html_tags = {int(x['id']): str(x.parent) for x in bs.find_all("h2")}
         return html_tags
 
 
@@ -55,16 +55,18 @@ class Listener:
         return block_id, block_body
 
     def parse_output(self, output_content):
-        plot_path = output_content.split('\n')[0] # TODO add option in case there is no plot
+        output_split = output_content.split('\n')
+        plot_path = output_split[0] if ".png" in output_content else "<br/>".join(output_split)
         return plot_path
 
     def update_html_content(self, block_parsed, output_parsed):
         block_id, block_body = block_parsed
-        plot_path = output_parsed
-        html = self.template_html.render(
+        plot = "png" in output_parsed
+        template = self.plot_template if plot else self.no_plot_template
+        html = template.render(
                 block_id = block_id,
                 block_body = block_body,
-                plot_path = plot_path,
+                output = output_parsed,
                 )
         self.html_tags[block_id] = html
 
@@ -77,7 +79,7 @@ class Listener:
 
     def read_output_file(self):
         if not self.outfile.is_file():
-            sleep(0.3) # TODO add timeout
+            sleep(0.3) 
             return self.read_output_file()
         with self.outfile.open("r") as f:
             return f.read()
@@ -89,7 +91,7 @@ class Listener:
         output_parsed = self.parse_output(output_content)
         self.update_html_content(block_parsed, output_parsed)
         self.write_html()
-        self.vimfile.unlink()
+        # self.vimfile.unlink()
         # self.outfile.unlink()
 
 if __name__ == "__main__":
