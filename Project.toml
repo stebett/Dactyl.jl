@@ -1,6 +1,6 @@
 name = "Dactyl"
 uuid = "6630c651-b3b0-4ef5-ad05-be8b0b325e72"
-authors = ["stebett <stebett@gmail.com>"]
+authors = ["stebett <bettani@ens.fr>"]
 version = "0.1.0"
 
 [deps]
