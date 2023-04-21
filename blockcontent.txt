@@ -1,8 +1,0 @@
-## 10
-a = 0
-function f(args)
-	do_stuff(args)
-end
-display(stuff)
-
-#
