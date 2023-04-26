@@ -4,6 +4,7 @@ using REPLHistory
 using RecipesBase
 using Mustache
 using Hyperscript
+using Plots
 
 
 @tags head meta body h1 
@@ -12,7 +13,7 @@ using Hyperscript
 mutable struct DactylBlock{T}
 	id
 	text
-	ans::T
+	result::T
 end
 
 mutable struct DactylPage
@@ -22,9 +23,9 @@ mutable struct DactylPage
     title
     plot_dir
     function DactylPage(title)
-        plot_dir = ".$(title)_dactyl"
+        plot_dir = "$(title)_dactyl"
         if !isdir(plot_dir)
-            mkdir(plot_dir)
+            mkpath(plot_dir)
         end
         new(Dict(), 0, nothing, title, plot_dir)
     end
@@ -36,20 +37,22 @@ function new_page(title)
           ast -> :(Base.eval(Main, :(dactylpage.counter += 1)); $(ast)))
 end
 
-function startblock(page, id) 
+function startblock_(page, id) 
     page.counter = 0
     page.current_id = id
 end
 
-function endblock(page, ans)
+function endblock_(page, ans)
     update_page(page, ans)
 end
 
-function update_page(page, ans)
+startblock(id) = startblock_(dactylpage, id)
+endblock(ans) = endblock_(dactylpage, ans)
+
+function update_page(page, result)
     id = page.current_id
-    result, isplot = format_output(ans, id)
     text = replace(history(page.counter), "\n" => "<br/>")
-    block = DactylBlock(id, text, result, isplot)
+    block = DactylBlock(id, text, result)
 	page.blocks[id] = block
     write_html(page)
 end
@@ -70,23 +73,13 @@ end
 
 function render_block(block::DactylBlock{<:AbstractPlot})
     d = Dict(string(key)=>getfield(block, key) for key in fieldnames(DactylBlock))
+    d["result"] = joinpath(abspath(dactylpage.plot_dir), "plot_$(block.id).png")
+    savefig(block.result, d["result"])
     template_path = "templates/block_plot.html"
     block_html = Mustache.render_from_file(template_path, d)
 end
 
 "Save plots if ans is a plot and returns (ans, isplot)"
-function format_output(ans, id)
-    if isa(ans, RecipesBase.AbstractPlot)
-        plot_name = joinpath(abspath(page.plot_dir), "plot_$id.png")
-		savefig(ans, plot_name)
-		isplot = true
-		return plot_name, isplot
-	end
-	isplot = false
-    output = ans
-	return output, isplot
-end
-
 
 function reload_surf()
     try
@@ -97,6 +90,8 @@ function reload_surf()
     end
 end
 
+global dactylpage = DactylPage("prova")
 
+export new_page, startblock, endblock, dactylpage
 
 end # module Dactyl
