@@ -164,8 +164,8 @@ function find_dactylpage()
                 return v, true
             end
         catch
+            @warn "Variable $v not found"
         end
-
     end
     return nothing, false
 end
