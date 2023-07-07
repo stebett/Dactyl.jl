@@ -6,6 +6,32 @@ using Mustache
 using Hyperscript
 using REPL
 
+@tags head meta body h1 
+@tags_noescape p
+
+const startstring = "#% "
+const endstring = "#@"
+
+mutable struct DactylBlock{T}
+	id
+	text
+	result::T
+end
+
+mutable struct DactylPage
+	blocks::Dict{Int, DactylBlock}
+    title
+    dactyl_dir
+    plot_dir
+    function DactylPage(title)
+        dactyl_dir = joinpath("dactyl", title)
+        plot_dir = joinpath(dactyl_dir, "plots")
+        mkpath(plot_dir)
+        new(Dict(), title, dactyl_dir, plot_dir)
+    end
+end
+
+
 """
 start_dactyl()
 
