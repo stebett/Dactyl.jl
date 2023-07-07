@@ -274,6 +274,6 @@ function reload_surf()
     end
 end
 
-export DactylPage, start_dactyl
+export DactylPage, start_dactyl, detect_block
 
 end # module Dactyl
