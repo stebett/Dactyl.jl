@@ -1,86 +1,244 @@
 module Dactyl
 
-using REPLHistory
 using RecipesBase
+using Logging
 using Mustache
 using Hyperscript
-using Plots
+using REPL
 
+"""
+start_dactyl()
 
-@tags head meta body h1 
-@tags_noescape p
+The `start_dactyl` function initializes the Dactyl module for interactive documentation in the REPL. It checks if the `detect_block_ast` transform is already added to the active REPL backend's AST transforms. If not, it adds the transform to the list.
 
-mutable struct DactylBlock{T}
-	id
-	text
-	result::T
+# Note: This function needs to be called to enable automatic block detection and updating in the Dactyl module.
+
+# Usage:
+	- Call `start_dactyl()` before using the Dactyl module in the REPL.
+"""
+function start_dactyl()
+	if !any(occursin.("detect_block_ast", string.(Base.active_repl_backend.ast_transforms)))
+		push!(Base.active_repl_backend.ast_transforms, detect_block_ast)
+	end
 end
 
-mutable struct DactylPage
-	blocks::Dict{Int, DactylBlock}
-	counter::Int
-	current_id
-    title
-    plot_dir
-    function DactylPage(title)
-        plot_dir = "$(title)_dactyl"
-        if !isdir(plot_dir)
-            mkpath(plot_dir)
-        end
-        new(Dict(), 0, nothing, title, plot_dir)
+
+"""
+detect_block(ans)
+
+1. Check for the end of the block.
+2. If the end is found, look for the start of the block.
+3. If the start is found, parse the block and update the page.
+
+# Arguments
+- `ans`: The output of the last command sent to the repl.
+
+# Returns
+- Nothing, but it updates the dactylpage struct and html file
+"""
+function detect_block(ans)
+    if !check_end()
+        return
     end
+    dactylpage, ok = find_dactylpage()
+    if !ok 
+        @warn "No DactylPage found"
+        return
+    end
+    unformatted_text = retrive_last_block()
+    block_id, block_text = parse_block(unformatted_text)
+    update_page(eval(dactylpage), parse(Int, block_id), block_text, ans)
 end
 
-function new_page(title)
-    global dactylpage = DactylPage(title)
-    push!(Base.active_repl_backend.ast_transforms, 
-          ast -> :(Base.eval(Main, :(dactylpage.counter += 1)); $(ast)))
+
+"""
+detect_block_ast(ast)
+
+The `detect_block_ast` function is an Abstract Syntax Tree transform that wraps an input AST with the code necessary to invoke the `detect_block` function. It evaluates the `detect_block` function with the `ans` variable in the REPL environment.
+
+# Arguments:
+	- `ast`: The input AST to be transformed.
+
+# Returns:
+	- The transformed AST with the `detect_block` function invocation.
+"""
+detect_block_ast(ast) = :(Base.eval(Main, :(detect_block(ans))); $(ast))
+
+
+"""
+retrive_last_block()
+
+Retrieves the last block from the command history.
+
+# Returns
+- The last block as a string.
+
+"""
+function retrive_last_block()
+    return read_history()[1:find_last_start()]
 end
 
-function startblock_(page, id) 
-    page.counter = 0
-    page.current_id = id
+"""
+read_history()
+
+Reads the command history from the REPL.
+
+# Returns
+- An array of strings representing the command history.
+
+"""
+function read_history()
+    h = reverse(readlines(REPL.find_hist_file()))[1:end]
+    h1 = filter(!contains("# mode:"), h)
+    h2 = filter(!contains("# time:"), h1)
+    return strip.(h2)
 end
 
-function endblock_(page, ans)
-    update_page(page, ans)
+"""
+find_last_start()
+
+Finds the position of the last startstring in the command history.
+
+# Returns
+- The position of the last startstring.
+
+"""
+function find_last_start()
+    return first(findall(occursin.(startstring, read_history())))
 end
 
-startblock(id) = startblock_(dactylpage, id)
-endblock(ans) = endblock_(dactylpage, ans)
+"""
+check_end()
 
-function update_page(page, result)
-    id = page.current_id
-    text = replace(history(page.counter), "\n" => "<br/>")
-    block = DactylBlock(id, text, result)
-	page.blocks[id] = block
+Checks if the endstring is present in the command history.
+
+# Returns
+- `true` if the endstring is found, `false` otherwise.
+
+"""
+function check_end()
+    return occursin(endstring, first(read_history()))
+end
+
+"""
+find_dactylpage()
+
+Finds the DactylPage object in the current scope.
+
+# Returns
+- A tuple with the name of the DactylPage object and a boolean indicating if it was found.
+
+"""
+function find_dactylpage()
+    variables = names(Main)
+    for v in variables
+        if typeof(eval(v)) <: DactylPage
+            return v, true
+        end
+    end
+    return nothing, false
+end
+
+"""
+parse_block(block_text)
+
+Parses the block text.
+
+# Arguments
+- `block_text`: The text of the block.
+
+# Returns
+- The block ID and the formatted block text.
+
+"""
+function parse_block(block_text)
+    text = block_text
+    block_id = split(pop!(text), " ") |> last
+    popfirst!(text)
+    return block_id, join(reverse(text), " <br/>")
+end
+
+"""
+update_page(page, block_id, text, result)
+
+Updates the page with the block information.
+
+# Arguments
+- `page`: The DactylPage object.
+- `block_id`: The ID of the block.
+- `text`: The formatted block text.
+- `result`: The result of the block.
+
+"""
+function update_page(page, block_id, text, result)
+    block = DactylBlock(block_id, text, result)
+    page.blocks[block_id] = block
     write_html(page)
 end
 
+"""
+write_html(page)
+
+Writes the HTML file for the page.
+
+# Arguments
+- `page`: The DactylPage object.
+
+"""
 function write_html(page)
     sorted_blocks = sort(collect(page.blocks), by = x->x[1], rev=true)
-    block_html = [render_block(b) for (_, b) in sorted_blocks]
-    doc = [head(meta(charset="UTF-8")), body([h1(page.title), p.(block_html)])];
-    savehtml(joinpath(page.plot_dir, "$(page.title).html"), doc);
+    block_html = [render_block(b, page) for (_, b) in sorted_blocks]
+    doc = [head(meta(charset="UTF-8")), body([h1(page.title), p.(block_html)])]
+    savehtml(joinpath(page.dactyl_dir, "$(page.title).html"), doc)
     reload_surf()
 end
 
-function render_block(block::DactylBlock{<:Any})
+"""
+render_block(block::DactylBlock{<:Any}, page)
+
+Renders the block as HTML.
+
+# Arguments
+- `block`: The DactylBlock object.
+- `page`: The DactylPage object.
+
+# Returns
+- The HTML string representing the block.
+
+"""
+function render_block(block::DactylBlock{<:Any}, page)
     d = Dict(string(key)=>getfield(block, key) for key in fieldnames(DactylBlock))
     template_path = "templates/block.html"
     block_html = Mustache.render_from_file(template_path, d)
 end
 
-function render_block(block::DactylBlock{<:AbstractPlot})
+"""
+render_block(block::DactylBlock{<:AbstractPlot}, page)
+
+Renders the block as HTML for plots.
+
+# Arguments
+- `block`: The DactylBlock object.
+- `page`: The DactylPage object.
+
+# Returns
+- The HTML string representing the block.
+
+"""
+function render_block(block::DactylBlock{<:AbstractPlot}, page)
     d = Dict(string(key)=>getfield(block, key) for key in fieldnames(DactylBlock))
-    d["result"] = joinpath(abspath(dactylpage.plot_dir), "plot_$(block.id).png")
+    d["result"] = joinpath(abspath(page.plot_dir), "plot_$(block.id).png")
     savefig(block.result, d["result"])
     template_path = "templates/block_plot.html"
     block_html = Mustache.render_from_file(template_path, d)
 end
 
-"Save plots if ans is a plot and returns (ans, isplot)"
+"""
+reload_surf()
 
+Reloads the Surf web browser.
+
+"""
 function reload_surf()
     try
         run(`pkill -1 surf`)
@@ -90,8 +248,6 @@ function reload_surf()
     end
 end
 
-global dactylpage = DactylPage("prova")
-
-export new_page, startblock, endblock, dactylpage
+export DactylPage, start_dactyl
 
 end # module Dactyl
