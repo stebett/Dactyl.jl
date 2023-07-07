@@ -1,10 +1,11 @@
 module Dactyl
 
-using RecipesBase
+using REPL
 using Logging
 using Mustache
+using RecipesBase
 using Hyperscript
-using REPL
+using InteractiveUtils
 
 @tags head meta body h1 
 @tags_noescape p
