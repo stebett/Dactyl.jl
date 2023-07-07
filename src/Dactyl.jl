@@ -159,9 +159,13 @@ Finds the DactylPage object in the current scope.
 function find_dactylpage()
     variables = names(Main)
     for v in variables
-        if typeof(eval(v)) <: DactylPage
-            return v, true
+        try
+            if typeof(eval(v)) <: DactylPage
+                return v, true
+            end
+        catch
         end
+
     end
     return nothing, false
 end
