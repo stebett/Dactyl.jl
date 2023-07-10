@@ -13,7 +13,6 @@ if PLOTS_LOADED
     using Plots
 end
 
-# Your module code here
 
 function savefig(plot, filename)
     if PLOTS_LOADED
@@ -23,7 +22,6 @@ function savefig(plot, filename)
     end
 end
 
-end  # module MyModule
 
 @tags head meta body h1 
 @tags_noescape p
