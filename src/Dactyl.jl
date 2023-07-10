@@ -74,7 +74,7 @@ function detect_block(ans)
     end
     unformatted_text = retrive_last_block()
     block_id, block_text = parse_block(unformatted_text)
-    update_page(eval(dactylpage), parse(Int, block_id), block_text, ans)
+    update_page(Main.eval(dactylpage), parse(Int, block_id), block_text, ans)
 end
 
 
