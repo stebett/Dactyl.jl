@@ -1,3 +1,6 @@
+using Pkg
+Pkg.activate("/home/ginko/phd/analysis")
+Pkg.add("/home/ginko/dev/Dactyl")
 using Dactyl
 
 # Step 3: Initialize Dactyl
