@@ -7,6 +7,24 @@ using RecipesBase
 using Hyperscript
 using InteractiveUtils
 
+const PLOTS_LOADED = @isdefined(Plots)
+
+if PLOTS_LOADED
+    using Plots
+end
+
+# Your module code here
+
+function savefig(plot, filename)
+    if PLOTS_LOADED
+        Plots.savefig(plot, filename)
+    else
+        error("Plots package not loaded. Cannot save plot.")
+    end
+end
+
+end  # module MyModule
+
 @tags head meta body h1 
 @tags_noescape p
 
