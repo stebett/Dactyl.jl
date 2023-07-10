@@ -7,7 +7,7 @@ using Dactyl
 start_dactyl()
 
 # Step 4: Define a DactylPage object
-page = DactylPage("example.jl")
+page = DactylPage("Example")
 
 # Step 5: Code normally, using the predifined code separators 
 #% 1
