@@ -1,6 +1,3 @@
-Sure! Here's a simple README for the Dactyl module:
-
-```
 # Dactyl
 
 Dactyl is a Julia module that enables interactive documentation within the Julia REPL. It allows you to define code blocks and automatically update an HTML page with the results of those blocks. It can be used to create dynamic tutorials, notebooks, or interactive code documentation.
