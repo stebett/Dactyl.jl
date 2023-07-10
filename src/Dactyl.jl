@@ -63,15 +63,15 @@ detect_block(ans)
 # Returns
 - Nothing, but it updates the dactylpage struct and html file
 """
-function detect_block(ans, dactylage)
+function detect_block(ans)
     if !check_end()
         return
     end
-    # dactylpage, ok = find_dactylpage()
-    # if !ok 
-    #     @warn "No DactylPage found"
-    #     return
-    # end
+    dactylpage, ok = find_dactylpage()
+    if !ok 
+        @warn "No DactylPage found"
+        return
+    end
     unformatted_text = retrive_last_block()
     block_id, block_text = parse_block(unformatted_text)
     update_page(eval(dactylpage), parse(Int, block_id), block_text, ans)
@@ -89,7 +89,7 @@ The `detect_block_ast` function is an Abstract Syntax Tree transform that wraps 
 # Returns:
 	- The transformed AST with the `detect_block` function invocation.
 """
-detect_block_ast(ast) = :(Base.eval(Main, :(detect_block(ans, find_dactylpage()))); $(ast))
+detect_block_ast(ast) = :(Base.eval(Main, :(detect_block(ans))); $(ast))
 
 
 """
@@ -160,7 +160,7 @@ function find_dactylpage()
     variables = names(Main)
     for v in variables
         try
-            if typeof(eval(v)) <: DactylPage
+            if typeof(Base.eval(v)) <: DactylPage
                 return v, true
             end
         catch
@@ -279,6 +279,6 @@ function reload_surf()
     end
 end
 
-export DactylPage, start_dactyl, detect_block, find_dactylpage
+export DactylPage, start_dactyl, detect_block
 
 end # module Dactyl
