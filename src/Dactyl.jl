@@ -156,8 +156,7 @@ Finds the DactylPage object in the current scope.
 - A tuple with the name of the DactylPage object and a boolean indicating if it was found.
 
 """
-function find_dactylpage()
-    variables = names(Main)
+function find_dactylpage(variables=names(Main))
     for v in variables
         try
             if typeof(eval(v)) <: DactylPage

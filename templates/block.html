@@ -1,9 +1,29 @@
-<div>
-	<h2 id={{{id}}}>Block {{{id}}} </h2>
-	<details open>
-		<summary>Code</summary>
-		<p>{{{text}}}</p>
-	</details>
-	<p>{{{result}}}</p>
-	<hr/>
+<style>
+    .block-container {
+        background-color: #f8f8f8;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
+
+    .block-code {
+        background-color: #f1f1f1;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+        white-space: pre-wrap;
+        overflow-x: auto;
+    }
+</style>
+
+<div class="block-container">
+    <h2 id="{{{id}}}">Block {{{id}}}</h2>
+    <details open>
+        <summary>Code</summary>
+        <pre class="block-code">{{{text}}}</pre>
+    </details>
+    <p>{{{result}}}</p>
+    <hr>
 </div>
+
