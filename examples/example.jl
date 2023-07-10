@@ -1,8 +1,7 @@
-julia
 using Pkg
 Pkg.activate("/home/ginko/phd/analysis")
-Pkg.add(path="/home/ginko/dev/Dactyl")
-using Dactyl
+using Revise
+using Dactyl 
 
 # Step 3: Initialize Dactyl
 start_dactyl()
