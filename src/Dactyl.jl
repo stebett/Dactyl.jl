@@ -43,7 +43,9 @@ The `start_dactyl` function initializes the Dactyl module for interactive docume
 # Usage:
 	- Call `start_dactyl()` before using the Dactyl module in the REPL.
 """
-function start_dactyl()
+function start_dactyl(title)
+    page = DactylPage(title)
+    detect_block_ast_page() = detect_block_ast(page)
 	if !any(occursin.("detect_block_ast", string.(Base.active_repl_backend.ast_transforms)))
 		push!(Base.active_repl_backend.ast_transforms, detect_block_ast)
 	end
@@ -63,15 +65,15 @@ detect_block(ans)
 # Returns
 - Nothing, but it updates the dactylpage struct and html file
 """
-function detect_block(ans, variables)
+function detect_block(ans, dactylpage)
     if !check_end()
         return
     end
-    dactylpage, ok = find_dactylpage(variables)
-    if !ok 
-        @warn "No DactylPage found"
-        return
-    end
+    # dactylpage, ok = find_dactylpage()
+    # if !ok 
+    #     @warn "No DactylPage found"
+    #     return
+    # end
     unformatted_text = retrive_last_block()
     block_id, block_text = parse_block(unformatted_text)
     update_page(eval(dactylpage), parse(Int, block_id), block_text, ans)
@@ -89,7 +91,7 @@ The `detect_block_ast` function is an Abstract Syntax Tree transform that wraps 
 # Returns:
 	- The transformed AST with the `detect_block` function invocation.
 """
-detect_block_ast(ast) = :(Base.eval(Main, :(detect_block(ans, names(Main)))); $(ast))
+detect_block_ast(ast, page) = :(Base.eval(Main, :(detect_block(ans, page))); $(ast))
 
 
 """
@@ -156,7 +158,8 @@ Finds the DactylPage object in the current scope.
 - A tuple with the name of the DactylPage object and a boolean indicating if it was found.
 
 """
-function find_dactylpage(variables=names(Main))
+function find_dactylpage()
+    variables = names(Main)
     for v in variables
         try
             if typeof(eval(v)) <: DactylPage
