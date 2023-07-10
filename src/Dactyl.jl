@@ -47,7 +47,7 @@ function start_dactyl(title)
     page = DactylPage(title)
     detect_block_ast_page() = detect_block_ast(page)
 	if !any(occursin.("detect_block_ast", string.(Base.active_repl_backend.ast_transforms)))
-		push!(Base.active_repl_backend.ast_transforms, detect_block_ast)
+		push!(Base.active_repl_backend.ast_transforms, detect_block_ast_page)
 	end
 end
 
