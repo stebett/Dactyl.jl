@@ -63,11 +63,11 @@ detect_block(ans)
 # Returns
 - Nothing, but it updates the dactylpage struct and html file
 """
-function detect_block(ans)
+function detect_block(ans, variables)
     if !check_end()
         return
     end
-    dactylpage, ok = find_dactylpage()
+    dactylpage, ok = find_dactylpage(variables)
     if !ok 
         @warn "No DactylPage found"
         return
@@ -89,7 +89,7 @@ The `detect_block_ast` function is an Abstract Syntax Tree transform that wraps 
 # Returns:
 	- The transformed AST with the `detect_block` function invocation.
 """
-detect_block_ast(ast) = :(Base.eval(Main, :(detect_block(ans))); $(ast))
+detect_block_ast(ast) = :(Base.eval(Main, :(detect_block(ans, names(Main)))); $(ast))
 
 
 """
