@@ -160,7 +160,7 @@ function find_dactylpage()
     variables = names(Main)
     for v in variables
         try
-            if typeof(Base.eval(v)) <: DactylPage
+            if typeof(Main.eval(v)) <: DactylPage
                 return v, true
             end
         catch
