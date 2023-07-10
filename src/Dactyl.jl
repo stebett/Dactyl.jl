@@ -43,11 +43,9 @@ The `start_dactyl` function initializes the Dactyl module for interactive docume
 # Usage:
 	- Call `start_dactyl()` before using the Dactyl module in the REPL.
 """
-function start_dactyl(title)
-    page = DactylPage(title)
-    detect_block_ast_page(ast) = detect_block_ast(ast, page)
+function start_dactyl()
 	if !any(occursin.("detect_block_ast", string.(Base.active_repl_backend.ast_transforms)))
-		push!(Base.active_repl_backend.ast_transforms, detect_block_ast_page)
+		push!(Base.active_repl_backend.ast_transforms, detect_block_ast)
 	end
 end
 
@@ -65,7 +63,7 @@ detect_block(ans)
 # Returns
 - Nothing, but it updates the dactylpage struct and html file
 """
-function detect_block(ans, dactylpage)
+function detect_block(ans, dactylage)
     if !check_end()
         return
     end
@@ -91,7 +89,7 @@ The `detect_block_ast` function is an Abstract Syntax Tree transform that wraps 
 # Returns:
 	- The transformed AST with the `detect_block` function invocation.
 """
-detect_block_ast(ast, page) = :(Base.eval(Main, :(detect_block(ans, page))); $(ast))
+detect_block_ast(ast) = :(Base.eval(Main, :(detect_block(ans, find_dactylpage()))); $(ast))
 
 
 """
