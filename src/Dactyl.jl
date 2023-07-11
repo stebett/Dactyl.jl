@@ -119,7 +119,7 @@ function read_history()
     h = reverse(readlines(REPL.find_hist_file()))[1:end]
     h1 = filter(!contains("# mode:"), h)
     h2 = filter(!contains("# time:"), h1)
-    return strip.(h2)
+	return strip.(h2)
 end
 
 """
@@ -187,7 +187,8 @@ function parse_block(block_text)
     text = block_text
     block_id = split(pop!(text), " ") |> last
     popfirst!(text)
-    return block_id, join(reverse(text), " <br/>")
+	text = join(reverse(text), " <br/>")
+    return block_id, text
 end
 
 """
@@ -240,7 +241,7 @@ Renders the block as HTML.
 """
 function render_block(block::DactylBlock{<:Any}, page)
     d = Dict(string(key)=>getfield(block, key) for key in fieldnames(DactylBlock))
-    template_path = "templates/block.html"
+	template_path = joinpath(dirname(dirname(pathof(Dactyl))), "templates", "block.html")
     block_html = Mustache.render_from_file(template_path, d)
 end
 
@@ -259,9 +260,11 @@ Renders the block as HTML for plots.
 """
 function render_block(block::DactylBlock{<:AbstractPlot}, page)
     d = Dict(string(key)=>getfield(block, key) for key in fieldnames(DactylBlock))
-    d["result"] = joinpath(abspath(page.plot_dir), "plot_$(block.id).png")
-    savefig(block.result, d["result"])
-    template_path = "templates/block_plot.html"
+    # d["result"] = joinpath(abspath(page.plot_dir), "plot_$(block.id).png")
+    # savefig(block.result, d["result"])
+    d["result"] = joinpath("plots", "plot_$(block.id).png")
+	savefig(block.result, joinpath(abspath(page.plot_dir), "plot_$(block.id).png"))
+	template_path = joinpath(dirname(dirname(pathof(Dactyl))), "templates", "block_plot.html")
     block_html = Mustache.render_from_file(template_path, d)
 end
 
