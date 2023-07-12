@@ -64,5 +64,6 @@ Check out the `examples/` directory for an example usage of the Dactyl module.
 
 Dactyl is released under the [MIT License](LICENSE).
 
-```
+## TODO
 
+- [] Proper display of Dataframes, matrix and vector

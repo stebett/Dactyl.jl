@@ -6,7 +6,9 @@ using Mustache
 using RecipesBase
 using Hyperscript
 using InteractiveUtils
+using PrettyTables
 using Plots
+using DataFrames
 
 @tags head meta body h1 
 @tags_noescape p
@@ -15,10 +17,12 @@ const startstring = "#% "
 const endstring = "#@"
 
 mutable struct DactylBlock{T}
-	id
-	text
-	result::T
+    id
+    text
+    result::T
+    html
 end
+
 
 mutable struct DactylPage
 	blocks::Dict{Int, DactylBlock}
@@ -204,7 +208,8 @@ Updates the page with the block information.
 
 """
 function update_page(page, block_id, text, result)
-    block = DactylBlock(block_id, text, result)
+    block = DactylBlock(block_id, text, result, "")
+    render_block(block, page)
     page.blocks[block_id] = block
     write_html(page)
 end
@@ -220,10 +225,11 @@ Writes the HTML file for the page.
 """
 function write_html(page)
     sorted_blocks = sort(collect(page.blocks), by = x->x[1], rev=true)
-    block_html = [render_block(b, page) for (_, b) in sorted_blocks]
-    doc = [head(meta(charset="UTF-8")), body([h1(page.title), p.(block_html)])]
+    doc = [head(meta(charset="UTF-8")),
+           body([h1(page.title),
+                 p.(getfield.(getfield.(sorted_blocks, :second), :html))])]
     savehtml(joinpath(page.dactyl_dir, "$(page.title).html"), doc)
-    reload_surf()
+    # reload_surf()
 end
 
 """
@@ -242,7 +248,7 @@ Renders the block as HTML.
 function render_block(block::DactylBlock{<:Any}, page)
     d = Dict(string(key)=>getfield(block, key) for key in fieldnames(DactylBlock))
 	template_path = joinpath(dirname(dirname(pathof(Dactyl))), "templates", "block.html")
-    block_html = Mustache.render_from_file(template_path, d)
+    block.html = Mustache.render_from_file(template_path, d)
 end
 
 """
@@ -265,11 +271,11 @@ function render_block(block::DactylBlock{<:AbstractPlot}, page)
     d["result"] = joinpath("plots", "plot_$(block.id).png")
 	savefig(block.result, joinpath(abspath(page.plot_dir), "plot_$(block.id).png"))
 	template_path = joinpath(dirname(dirname(pathof(Dactyl))), "templates", "block_plot.html")
-    block_html = Mustache.render_from_file(template_path, d)
+    block.html = Mustache.render_from_file(template_path, d)
 end
 
 """
-render_block(block::DactylBlock{<:Plots.AnimatedGif}, page)
+render_block(block::DactylBlock{<:Plots.Animation}, page)
 
 Renders the block as HTML for gifs.
 
@@ -288,7 +294,27 @@ function render_block(block::DactylBlock{<:Animation}, page)
     d["result"] = joinpath("plots", "plot_$(block.id).gif")
 	gif(block.result, joinpath(abspath(page.plot_dir), "plot_$(block.id).gif"), fps=5)
 	template_path = joinpath(dirname(dirname(pathof(Dactyl))), "templates", "block_plot.html")
-    block_html = Mustache.render_from_file(template_path, d)
+    block.html = Mustache.render_from_file(template_path, d)
+end
+
+"""
+render_block(block::DactylBlock{<:Plots.Animation}, page)
+
+Renders the block as HTML for gifs.
+
+# Arguments
+- `block`: The DactylBlock object.
+- `page`: The DactylPage object.
+
+# Returns
+- The HTML string representing the block.
+
+"""
+function render_block(block::DactylBlock{<:DataFrame}, page)
+    d = Dict(string(key)=>getfield(block, key) for key in fieldnames(DactylBlock))
+    d["result"] = p(pretty_table(HTML, d["result"]))
+	template_path = joinpath(dirname(dirname(pathof(Dactyl))), "templates", "block.html")
+    block.html = Mustache.render_from_file(template_path, d)
 end
 
 """
