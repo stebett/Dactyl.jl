@@ -6,7 +6,7 @@ using Mustache
 using RecipesBase
 using Hyperscript
 using InteractiveUtils
-import Plots: savefig
+using Plots
 
 @tags head meta body h1 
 @tags_noescape p
@@ -264,6 +264,29 @@ function render_block(block::DactylBlock{<:AbstractPlot}, page)
     # savefig(block.result, d["result"])
     d["result"] = joinpath("plots", "plot_$(block.id).png")
 	savefig(block.result, joinpath(abspath(page.plot_dir), "plot_$(block.id).png"))
+	template_path = joinpath(dirname(dirname(pathof(Dactyl))), "templates", "block_plot.html")
+    block_html = Mustache.render_from_file(template_path, d)
+end
+
+"""
+render_block(block::DactylBlock{<:Plots.AnimatedGif}, page)
+
+Renders the block as HTML for gifs.
+
+# Arguments
+- `block`: The DactylBlock object.
+- `page`: The DactylPage object.
+
+# Returns
+- The HTML string representing the block.
+
+"""
+function render_block(block::DactylBlock{<:Animation}, page)
+    d = Dict(string(key)=>getfield(block, key) for key in fieldnames(DactylBlock))
+    # d["result"] = joinpath(abspath(page.plot_dir), "plot_$(block.id).png")
+    # savefig(block.result, d["result"])
+    d["result"] = joinpath("plots", "plot_$(block.id).gif")
+	gif(block.result, joinpath(abspath(page.plot_dir), "plot_$(block.id).gif"), fps=5)
 	template_path = joinpath(dirname(dirname(pathof(Dactyl))), "templates", "block_plot.html")
     block_html = Mustache.render_from_file(template_path, d)
 end
