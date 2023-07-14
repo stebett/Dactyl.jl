@@ -253,21 +253,6 @@ end
 
 
 
-    
-
-
-
-# code = Gumbo.text(code_element)
-
-# # Extract the image source
-# image_element = Gumbo.get(parsed_html, "img.block-image")
-# image_src = Gumbo.attributes(image_element)["src"]
-
-# println("Code:")
-# println(code)
-# println("Image Source:")
-# println(image_src)
-
 """
 render_block(block::DactylBlock{<:Any}, page)
 
@@ -302,8 +287,6 @@ Renders the block as HTML for plots.
 """
 function render_block(block::DactylBlock{<:AbstractPlot}, page)
     d = Dict(string(key)=>getfield(block, key) for key in fieldnames(DactylBlock))
-    # d["result"] = joinpath(abspath(page.plot_dir), "plot_$(block.id).png")
-    # savefig(block.result, d["result"])
     d["result"] = joinpath("plots", "plot_$(block.id).png")
 	savefig(block.result, joinpath(abspath(page.plot_dir), "plot_$(block.id).png"))
 	template_path = joinpath(dirname(dirname(pathof(Dactyl))), "templates", "block_plot.html")
@@ -325,33 +308,35 @@ Renders the block as HTML for gifs.
 """
 function render_block(block::DactylBlock{<:Animation}, page)
     d = Dict(string(key)=>getfield(block, key) for key in fieldnames(DactylBlock))
-    # d["result"] = joinpath(abspath(page.plot_dir), "plot_$(block.id).png")
-    # savefig(block.result, d["result"])
     d["result"] = joinpath("plots", "plot_$(block.id).gif")
 	gif(block.result, joinpath(abspath(page.plot_dir), "plot_$(block.id).gif"), fps=5)
 	template_path = joinpath(dirname(dirname(pathof(Dactyl))), "templates", "block_plot.html")
     block.html = Mustache.render_from_file(template_path, d)
 end
 
-"""
-render_block(block::DactylBlock{<:Plots.Animation}, page)
-
-Renders the block as HTML for gifs.
-
-# Arguments
-- `block`: The DactylBlock object.
-- `page`: The DactylPage object.
-
-# Returns
-- The HTML string representing the block.
-
-"""
 function render_block(block::DactylBlock{<:DataFrame}, page)
     d = Dict(string(key)=>getfield(block, key) for key in fieldnames(DactylBlock))
     d["result"] = p(pretty_table(HTML, d["result"]))
 	template_path = joinpath(dirname(dirname(pathof(Dactyl))), "templates", "block.html")
     block.html = Mustache.render_from_file(template_path, d)
 end
+
+function render_block(block::DactylBlock{<:AbstractVector{<:AbstractPlot}}, page)
+    d = Dict(string(key)=>getfield(block, key) for key in fieldnames(DactylBlock))
+	plots_common_name = joinpath("plots", "plot_$(block.id)")
+    img_tag(plots_common_name, i) = "<img class='block-image' src='$(plots_common_name)_$i.png'>\n"
+	result = ""
+	for (i, plot) in enumerate(d["result"])
+		tag = img_tag(plots_common_name, i)
+		savefig(plot, joinpath(abspath(page.dactyl_dir), "$(plots_common_name)_$i.png"))
+		result *= tag
+	end
+	d["result"] = result
+	template_path = joinpath(dirname(dirname(pathof(Dactyl))), "templates", "block_scrollable_plots.html")
+    block.html = Mustache.render_from_file(template_path, d)
+end
+
+
 
 """
 reload_surf()
