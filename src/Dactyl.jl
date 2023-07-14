@@ -324,7 +324,7 @@ end
 function render_block(block::DactylBlock{<:AbstractVector{<:AbstractPlot}}, page)
     d = Dict(string(key)=>getfield(block, key) for key in fieldnames(DactylBlock))
 	plots_common_name = joinpath("plots", "plot_$(block.id)")
-    img_tag(plots_common_name, i) = "<img class='block-image' src='$(plots_common_name)_$i.png'>\n"
+    img_tag(plots_common_name, i) = "<img class='block-image' src='$(plots_common_name)_$i.png'/>\n"
 	result = ""
 	for (i, plot) in enumerate(d["result"])
 		tag = img_tag(plots_common_name, i)
