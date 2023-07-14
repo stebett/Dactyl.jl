@@ -66,4 +66,9 @@ Dactyl is released under the [MIT License](LICENSE).
 
 ## TODO
 
-- [] Proper display of Dataframes, matrix and vector
+- [x] Proper display of Dataframes, matrix and vector
+- [x] Compute html only for the block being computed
+- [x] write css only once
+- [x] When you reopen a page, automatically refill block structures with the html already written
+- [] Make Plots, DataFrames etc optional dependencies
+- [] Add dispatch for Vector{Plots} where you can slides plots with an arrow button

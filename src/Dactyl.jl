@@ -1,6 +1,7 @@
 module Dactyl
 
 using REPL
+using Gumbo
 using Logging
 using Mustache
 using RecipesBase
@@ -10,8 +11,8 @@ using PrettyTables
 using Plots
 using DataFrames
 
-@tags head meta body h1 
-@tags_noescape p
+@tags meta body h1 
+@tags_noescape p head
 
 const startstring = "#% "
 const endstring = "#@"
@@ -29,11 +30,14 @@ mutable struct DactylPage
     title
     dactyl_dir
     plot_dir
+    filename 
     function DactylPage(title)
         dactyl_dir = joinpath("dactyl", title)
         plot_dir = joinpath(dactyl_dir, "plots")
+        filename = joinpath(dactyl_dir, "$title.html")
+        blocks = isfile(filename) ? read_html(filename) : Dict()
         mkpath(plot_dir)
-        new(Dict(), title, dactyl_dir, plot_dir)
+        new(blocks, title, dactyl_dir, plot_dir, filename)
     end
 end
 
@@ -225,12 +229,44 @@ Writes the HTML file for the page.
 """
 function write_html(page)
     sorted_blocks = sort(collect(page.blocks), by = x->x[1], rev=true)
-    doc = [head(meta(charset="UTF-8")),
-           body([h1(page.title),
-                 p.(getfield.(getfield.(sorted_blocks, :second), :html))])]
-    savehtml(joinpath(page.dactyl_dir, "$(page.title).html"), doc)
+    style_path = joinpath(dirname(dirname(pathof(Dactyl))), "templates", "style.css")
+    link = "<link rel='stylesheet' href='$style_path'>"
+    doc = [head(meta(charset="UTF-8"), link)
+           body([h1(page.title), p.(getfield.(getfield.(sorted_blocks, :second), :html))])]
+    savehtml(page.filename, doc)
     # reload_surf()
 end
+
+function read_html(filename)
+    parsed_html = parsehtml(read(filename, String))
+    html_body = parsed_html.root.children[2].children
+    blocks_raw = filter(x -> typeof(x) <: HTMLElement{:div}, html_body)
+    blocks = filter(x -> x.attributes == Dict("class" => "block-container"), blocks_raw)
+    dactylblocks = map(blocks) do block
+        tit = filter(x -> typeof(x) <: HTMLElement{:h2}, block.children)
+        tit = filter(x -> haskey(x.attributes, "id"), tit) |> first
+        id = tit.attributes["id"]
+        parse(Int, id) => DactylBlock(id, "", "", string(block))
+    end
+    return Dict(dactylblocks)
+end
+
+
+
+    
+
+
+
+# code = Gumbo.text(code_element)
+
+# # Extract the image source
+# image_element = Gumbo.get(parsed_html, "img.block-image")
+# image_src = Gumbo.attributes(image_element)["src"]
+
+# println("Code:")
+# println(code)
+# println("Image Source:")
+# println(image_src)
 
 """
 render_block(block::DactylBlock{<:Any}, page)
